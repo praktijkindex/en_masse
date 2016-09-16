@@ -66,7 +66,7 @@ module EnMasse::Refinements
         if %w(created_at updated_at).include? column_name
           "now()"
         else
-          self.send(column_name)
+          ActiveRecord::Base.connection.quote(self.send(column_name))
         end
       }
     end
