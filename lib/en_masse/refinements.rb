@@ -3,10 +3,12 @@ module EnMasse::Refinements
   refine ::ActiveRecord::Base.singleton_class do
 
     def insert_collection collection
-      ids = allocate_ids(collection.count)
-      collection.zip(ids).each do |record, id|
-        record.id = id
-        record.update_foreign_keys
+      if sequence_name.present?
+        ids = allocate_ids(collection.count)
+        collection.zip(ids).each do |record, id|
+          record.id = id
+          record.update_foreign_keys
+        end
       end
       values = collection.map{|record|
         "(#{ record.values_for_insert(column_names).join(",") })"
