@@ -9,6 +9,7 @@ class CreateWholesAndParts < ActiveRecord::Migration[4.2]
     create_table :parts do |t|
       t.timestamps
       t.belongs_to :whole
+      t.integer :status
     end
   end
 end
@@ -19,6 +20,7 @@ end
 
 class Part < ActiveRecord::Base
   belongs_to :whole
+  enum status: [:old, :new, :broken], _prefix: true
 end
 
 shared_context "whole and parts" do
