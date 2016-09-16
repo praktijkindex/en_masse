@@ -1,6 +1,6 @@
 require "active_record"
 
-class CreateWholesAndParts < ActiveRecord::Migration
+class CreateWholesAndParts < ActiveRecord::Migration[4.2]
   def change
     create_table :wholes do |t|
       t.timestamps
