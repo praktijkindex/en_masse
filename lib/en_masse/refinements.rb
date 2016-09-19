@@ -88,12 +88,13 @@ module EnMasse::Refinements
     end
 
     def dependents
-      direct_dependents = self.class
-        .reflect_on_dependent_associations
-        .flat_map{|association|
-          with_cleared_pk { self.send(association.name) }
-        }.compact
-        .uniq
+      direct_dependents = with_cleared_pk {
+        self.class
+          .reflect_on_dependent_associations
+          .flat_map{|association| self.send(association.name) }
+          .compact
+          .uniq
+      }
       direct_dependents + direct_dependents.flat_map{|dependent| dependent.dependents}
     end
 
