@@ -90,10 +90,19 @@ module EnMasse::Refinements
     def dependents
       direct_dependents = self.class
         .reflect_on_dependent_associations
-        .flat_map{|association| self.send(association.name)}
-        .compact
+        .flat_map{|association|
+          with_cleared_pk { self.send(association.name) }
+        }.compact
         .uniq
       direct_dependents + direct_dependents.flat_map{|dependent| dependent.dependents}
+    end
+
+    def with_cleared_pk &block
+      pk = self[self.class.primary_key]
+      self[self.class.primary_key] = nil
+      yield
+    ensure
+      self[self.class.primary_key] = pk
     end
 
   end
