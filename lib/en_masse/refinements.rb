@@ -1,3 +1,5 @@
+require "benchmark"
+
 module EnMasse::Refinements
 
   refine ::ActiveRecord::Base.singleton_class do
@@ -13,12 +15,13 @@ module EnMasse::Refinements
       values = collection.map{|record|
         "(#{ record.values_for_insert(column_names).join(",") })"
       }
-      ActiveRecord::Base.logger.debug %Q[INSERT INTO #{table_name} (#{column_names.join(",")}) VALUES <#{values.count} values ...>;]
-      with_ar_log_level Logger::ERROR do
-        ActiveRecord::Base.connection.execute %Q[
-          INSERT INTO #{table_name} (#{column_names.join(",")})
-          VALUES #{values.join(",")};
-        ]
+      log_elapsed_time :debug, %Q[INSERT INTO #{table_name} (#{column_names.join(",")}) VALUES <#{values.count} values ...>;] do
+        with_ar_log_level Logger::ERROR do
+          connection.execute %Q[
+            INSERT INTO #{table_name} (#{column_names.join(",")})
+            VALUES #{values.join(",")};
+          ]
+        end
       end
     end
 
@@ -35,7 +38,7 @@ module EnMasse::Refinements
     end
 
     def allocate_ids amount
-      next_value = connection.execute(%Q[
+      next_value = connection.execute(squeeze_ws(%Q[
         SELECT pg_advisory_lock(#{primary_key_sequence_update_lock}),
                setval('#{sequence_name}', greatest(
                                              (select max(id) from #{table_name}),
@@ -43,17 +46,40 @@ module EnMasse::Refinements
                                           + #{amount}),
                currval('#{sequence_name}'),
                pg_advisory_unlock(#{primary_key_sequence_update_lock});
-                                      ]).first["currval"].to_i
+                                      ])).first["currval"].to_i
       start_value = next_value - amount + 1
       start_value..next_value
     end
 
     def with_ar_log_level level, &block
-      original_level = ActiveRecord::Base.logger.level
-      ActiveRecord::Base.logger.level = level
-      yield
-    ensure
-      ActiveRecord::Base.logger.level = original_level
+      if logger
+        begin
+          original_level = logger.level
+          logger.level = level
+          yield
+        ensure
+          logger.level = original_level if logger
+        end
+      else
+        yield
+      end
+    end
+
+    def log_elapsed_time level, message, &block
+      if logger
+        seconds = Benchmark.realtime &block
+        ms = "#{(seconds*1000).round(1)}ms"
+        logger.send level, "   (#{ms})  #{message}"
+      else
+        yield
+      end
+    end
+
+    def squeeze_ws string
+      string
+        .gsub(/\A\s+/, "")
+        .gsub(/\s+\z/, "")
+        .gsub(/\s+/, " ")
     end
 
   end
