@@ -14,7 +14,7 @@ module EnMasse::Refinements
         "(#{ record.values_for_insert(column_names).join(",") })"
       }
       ActiveRecord::Base.logger.debug %Q[INSERT INTO #{table_name} (#{column_names.join(",")}) VALUES <#{values.count} values ...>;]
-      with_ar_log_level :error do
+      with_ar_log_level Logger::ERROR do
         ActiveRecord::Base.connection.execute %Q[
           INSERT INTO #{table_name} (#{column_names.join(",")})
           VALUES #{values.join(",")};
