@@ -12,11 +12,12 @@ module EnMasse::Refinements
       end
       values = collection.map{|record|
         "(#{ record.values_for_insert(column_names).join(",") })"
-      }.join(",")
+      }
+      ActiveRecord::Base.logger.debug %Q[INSERT INTO #{table_name} (#{column_names.join(",")}) VALUES <#{values.count} values ...>;]
       with_ar_log_level :error do
         ActiveRecord::Base.connection.execute %Q[
           INSERT INTO #{table_name} (#{column_names.join(",")})
-          VALUES #{values};
+          VALUES #{values.join(",")};
         ]
       end
     end
