@@ -13,10 +13,12 @@ module EnMasse::Refinements
       values = collection.map{|record|
         "(#{ record.values_for_insert(column_names).join(",") })"
       }.join(",")
-      ActiveRecord::Base.connection.execute %Q[
-        INSERT INTO #{table_name} (#{column_names.join(",")})
-        VALUES #{values};
-      ]
+      with_ar_log_level :error do
+        ActiveRecord::Base.connection.execute %Q[
+          INSERT INTO #{table_name} (#{column_names.join(",")})
+          VALUES #{values};
+        ]
+      end
     end
 
     def reflect_on_dependent_associations
@@ -43,6 +45,14 @@ module EnMasse::Refinements
                                       ]).first["currval"].to_i
       start_value = next_value - amount + 1
       start_value..next_value
+    end
+
+    def with_ar_log_level level, &block
+      original_level = ActiveRecord::Base.logger.level
+      ActiveRecord::Base.logger.level = level
+      yield
+    ensure
+      ActiveRecord::Base.logger.level = original_level
     end
 
   end
