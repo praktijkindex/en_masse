@@ -104,7 +104,7 @@ module EnMasse::Refinements
           "now()"
         else
           conn = ActiveRecord::Base.connection
-          conn.quote( conn.type_cast(self.send(column_name), column) )
+          conn.quote( conn.type_cast(self.attributes[column_name], column) )
         end
       }
     end
